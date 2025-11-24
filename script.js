@@ -353,190 +353,188 @@ const allQuestions = [
     { q: "How do you create a copy of an array in JavaScript?", options: ["let newArray = array.copy()", "let newArray = array.map()", "let newArray = [...array]", "let newArray = array.slice(1)"], ans: "let newArray = [...array]" }
 ];
 
-// Expose the questions to the browser global so other scripts (or the page) can use them.
-if (typeof window !== 'undefined') {
-    window.allQuestions = allQuestions;
-} else if (typeof module !== 'undefined' && module.exports) {
-    module.exports = allQuestions;
+const startBtn = document.getElementById("start-quiz-btn");
+const submitBtn = document.getElementById("submit-answer-btn");
+const nextBtn = document.getElementById("next-question-btn");
+const restartBtn = document.getElementById("restart-quiz-btn");
+
+const questionText = document.getElementById("question-text");
+const optionsContainer = document.getElementById("options-container");
+
+const timeLeftDisplay = document.getElementById("time-left");
+const currentQNumDisplay = document.getElementById("current-question-number");
+const totalQNumDisplay = document.getElementById("total-questions");
+
+const startScreen = document.getElementById("quiz-start-screen");
+const quizScreen = document.getElementById("quiz-screen");
+const resultsScreen = document.getElementById("quiz-results-screen");
+
+const scoreText = document.getElementById("score-text");
+const totalAnsweredText = document.getElementById("total-answered");
+const percentageScore = document.getElementById("percentage-score");
+
+// ======================
+//  QUIZ STATE
+// ======================
+let selectedQuestions = [];
+let currentQuestionIndex = 0;
+let score = 0;
+let selectedOption = null;
+
+let timer;
+let timeLeft = 60;
+
+// ======================
+//  START QUIZ
+// ======================
+startBtn.addEventListener("click", () => {
+    let numQ = parseInt(document.getElementById("num-questions").value);
+
+    if (numQ < 1 || numQ > allQuestions.length) return;
+
+    selectedQuestions = shuffleArray(allQuestions).slice(0, numQ);
+
+    totalQNumDisplay.textContent = numQ;
+
+    currentQuestionIndex = 0;
+    score = 0;
+
+    startScreen.classList.remove("active");
+    resultsScreen.classList.remove("active");
+    quizScreen.classList.add("active");
+
+    loadQuestion();
+    startTimer();
+});
+
+// ======================
+//  TIMER
+// ======================
+function startTimer() {
+    clearInterval(timer);
+    timeLeft = 60;
+    timeLeftDisplay.textContent = timeLeft;
+
+    timer = setInterval(() => {
+        timeLeft--;
+        timeLeftDisplay.textContent = timeLeft;
+
+        if (timeLeft <= 0) {
+            clearInterval(timer);
+            submitAnswerAuto();
+        }
+    }, 1000);
 }
 
-// Helpful debug output when script is loaded in a browser or Node environment.
-try {
-    console.log('Loaded', allQuestions.length, 'questions');
-} catch (e) {
-    // ignore logging errors in restricted environments
+// Auto-submit when timer hits 0
+function submitAnswerAuto() {
+    submitBtn.click();
 }
 
-// Browser quiz controller (only run when loaded into a page)
-if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-    (function () {
-        // Cached DOM nodes
-        const startBtn = document.getElementById('start-quiz-btn');
-        const restartBtn = document.getElementById('restart-quiz-btn');
-        const submitBtn = document.getElementById('submit-answer-btn');
-        const numQuestionsInput = document.getElementById('num-questions');
-        const noteEl = document.querySelector('.note');
-        const quizStartScreen = document.getElementById('quiz-start-screen');
-        const quizScreen = document.getElementById('quiz-screen');
-        const resultsScreen = document.getElementById('quiz-results-screen');
-        const questionText = document.getElementById('question-text');
-        const optionsContainer = document.getElementById('options-container');
-        const currentQuestionNumber = document.getElementById('current-question-number');
-        const totalQuestionsEl = document.getElementById('total-questions');
-        const scoreText = document.getElementById('score-text');
-        const totalAnswered = document.getElementById('total-answered');
-        const percentageScore = document.getElementById('percentage-score');
-        const timeLeftEl = document.getElementById('time-left');
+// ======================
+//  LOAD QUESTION
+// ======================
+function loadQuestion() {
+    clearInterval(timer);
+    startTimer();
 
-        // State
-        let questions = [];
-        let totalQuestions = 10;
-        let currentIndex = 0;
-        let selectedIndex = null;
-        let score = 0;
-        let timerInterval = null;
-        const QUESTION_TIME = 60; // seconds per question
-        let timeLeft = QUESTION_TIME;
+    let current = selectedQuestions[currentQuestionIndex];
 
-        // Show accurate question count in the start note
-        if (noteEl) {
-            noteEl.textContent = `There are ${allQuestions.length} available questions from the provided text.`;
-            // ensure max attribute matches available questions
-            if (numQuestionsInput) numQuestionsInput.max = allQuestions.length;
-        }
+    questionText.textContent = current.q;
+    currentQNumDisplay.textContent = currentQuestionIndex + 1;
 
-        function shuffleArray(arr) {
-            const a = arr.slice();
-            for (let i = a.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [a[i], a[j]] = [a[j], a[i]];
-            }
-            return a;
-        }
+    optionsContainer.innerHTML = "";
+    selectedOption = null;
 
-        function showScreen(screenEl) {
-            [quizStartScreen, quizScreen, resultsScreen].forEach(s => s && s.classList.remove('active'));
-            if (screenEl) screenEl.classList.add('active');
-        }
+    nextBtn.style.display = "none";  // Hide Next button
+    submitBtn.disabled = true;       // Disabled until an option is picked
 
-        function startQuiz() {
-            const requested = parseInt(numQuestionsInput && numQuestionsInput.value, 10) || 10;
-            totalQuestions = Math.max(1, Math.min(allQuestions.length, requested));
-            questions = shuffleArray(allQuestions).slice(0, totalQuestions);
-            currentIndex = 0;
-            score = 0;
-            totalQuestionsEl.textContent = totalQuestions;
-            scoreText.textContent = '0';
-            showScreen(quizScreen);
-            renderQuestion();
-        }
+    current.options.forEach(option => {
+        let btn = document.createElement("button");
+        btn.className = "option-btn";
+        btn.textContent = option;
 
-        function startTimer() {
-            clearInterval(timerInterval);
-            timeLeft = QUESTION_TIME;
-            timeLeftEl.textContent = timeLeft;
-            timerInterval = setInterval(() => {
-                timeLeft -= 1;
-                timeLeftEl.textContent = timeLeft;
-                if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    // auto-submit as incorrect
-                    revealAnswer(null);
-                }
-            }, 1000);
-        }
+        btn.addEventListener("click", () => {
+            // Remove previous selection
+            document.querySelectorAll(".option-btn").forEach(b => b.classList.remove("selected"));
 
-        function renderQuestion() {
-            selectedIndex = null;
-            submitBtn.disabled = true;
-            optionsContainer.innerHTML = '';
-            const q = questions[currentIndex];
-            if (!q) return endQuiz();
-            currentQuestionNumber.textContent = currentIndex + 1;
-            questionText.textContent = q.q;
-
-            q.options.forEach((opt, i) => {
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'option-btn';
-                btn.textContent = opt;
-                btn.dataset.index = i;
-                btn.addEventListener('click', () => selectOption(i, btn));
-                optionsContainer.appendChild(btn);
-            });
-
-            startTimer();
-        }
-
-        function selectOption(i, btn) {
-            // clear previous selection
-            const prev = optionsContainer.querySelector('.option-btn.selected');
-            if (prev) prev.classList.remove('selected');
-            btn.classList.add('selected');
-            selectedIndex = i;
+            btn.classList.add("selected");
+            selectedOption = option;
             submitBtn.disabled = false;
-        }
-
-        function revealAnswer(chosenIndex) {
-            clearInterval(timerInterval);
-            const q = questions[currentIndex];
-            const optionButtons = Array.from(optionsContainer.querySelectorAll('.option-btn'));
-            optionButtons.forEach((btn, idx) => {
-                btn.disabled = true;
-                const text = btn.textContent;
-                if (text === q.ans) {
-                    btn.classList.add('correct');
-                }
-                if (chosenIndex !== null && idx === chosenIndex && text !== q.ans) {
-                    btn.classList.add('incorrect');
-                }
-            });
-
-            // update score if correct
-            if (chosenIndex !== null) {
-                const chosenText = optionButtons[chosenIndex] && optionButtons[chosenIndex].textContent;
-                if (chosenText === q.ans) {
-                    score += 1;
-                    scoreText.textContent = String(score);
-                }
-            }
-
-            // move to next after a short delay
-            setTimeout(() => {
-                currentIndex += 1;
-                if (currentIndex < totalQuestions) {
-                    renderQuestion();
-                } else {
-                    endQuiz();
-                }
-            }, 900);
-        }
-
-        function submitAnswer() {
-            if (selectedIndex === null) return;
-            revealAnswer(selectedIndex);
-            submitBtn.disabled = true;
-        }
-
-        function endQuiz() {
-            clearInterval(timerInterval);
-            showScreen(resultsScreen);
-            totalAnswered.textContent = totalQuestions;
-            scoreText.textContent = String(score);
-            const percent = totalQuestions ? Math.round((score / totalQuestions) * 100) : 0;
-            percentageScore.textContent = percent + '%';
-        }
-
-        // Wire up events
-        if (startBtn) startBtn.addEventListener('click', startQuiz);
-        if (submitBtn) submitBtn.addEventListener('click', submitAnswer);
-        if (restartBtn) restartBtn.addEventListener('click', () => showScreen(quizStartScreen));
-
-        // accessibility: allow Enter key to submit when an option is selected
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && quizScreen.classList.contains('active') && !submitBtn.disabled) {
-                submitAnswer();
-            }
         });
-    })();
+
+        optionsContainer.appendChild(btn);
+    });
+}
+
+// ======================
+//  SUBMIT ANSWER
+// ======================
+submitBtn.addEventListener("click", () => {
+    clearInterval(timer);
+
+    let current = selectedQuestions[currentQuestionIndex];
+
+    let optionButtons = document.querySelectorAll(".option-btn");
+
+    optionButtons.forEach(btn => {
+        btn.disabled = true;
+
+        if (btn.textContent === current.ans) {
+            btn.classList.add("correct");
+        } else if (btn.classList.contains("selected")) {
+            btn.classList.add("incorrect");
+        }
+    });
+
+    // Update score
+    if (selectedOption === current.ans) score++;
+
+    // Disable submit
+    submitBtn.disabled = true;
+
+    // Show NEXT button
+    nextBtn.style.display = "block";
+});
+
+// ======================
+//  NEXT QUESTION
+// ======================
+nextBtn.addEventListener("click", () => {
+    currentQuestionIndex++;
+
+    if (currentQuestionIndex < selectedQuestions.length) {
+        loadQuestion();
+    } else {
+        endQuiz();
+    }
+});
+
+// ======================
+//  END QUIZ
+// ======================
+function endQuiz() {
+    clearInterval(timer);
+
+    quizScreen.classList.remove("active");
+    resultsScreen.classList.add("active");
+
+    scoreText.textContent = score;
+    totalAnsweredText.textContent = selectedQuestions.length;
+    percentageScore.textContent = Math.floor((score / selectedQuestions.length) * 100) + "%";
+}
+
+// ======================
+//  RESTART QUIZ
+// ======================
+restartBtn.addEventListener("click", () => {
+    resultsScreen.classList.remove("active");
+    startScreen.classList.add("active");
+});
+
+// ======================
+//  HELPER: SHUFFLE ARRAY
+// ======================
+function shuffleArray(arr) {
+    return arr.sort(() => Math.random() - 0.5);
 }
