@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Node.js Quiz Master</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="quiz-container">
+        <h1>Node.js Quiz Master 🧠</h1>
+        
+        <div id="quiz-start-screen" class="screen active">
+            <h2>Test Your Node.js Knowledge!</h2>
+            <div class="config-group">
+                <label for="num-questions">Number of Questions (1-351):</label>
+                <input type="number" id="num-questions" min="1" max="389" value="10">
+            </div>
+            <button id="start-quiz-btn" class="btn primary-btn">Start Quiz</button>
+            <p class="note">There are 389 available questions from the provided text.</p>
+        </div>
+
+        <div id="quiz-screen" class="screen">
+            <div class="quiz-header">
+                <p>Question <span id="current-question-number">1</span> of <span id="total-questions">10</span></p>
+                <p id="timer" class="timer">Time: <span id="time-left">60</span>s</p>
+            </div>
+
+            <div class="question-body">
+                <h2 id="question-text">Question text will appear here.</h2>
+                <div id="options-container" class="options-container">
+                    </div>
+            </div>
+            
+            <div class="quiz-footer">
+                <button id="submit-answer-btn" class="btn primary-btn" disabled>Submit Answer</button>
+            </div>
+        </div>
+
+        <div id="quiz-results-screen" class="screen">
+            <h2>Quiz Complete! 🎉</h2>
+            <div class="results-summary">
+                <p>You answered **<span id="score-text">0</span>** out of **<span id="total-answered">10</span>** questions correctly.</p>
+                <p>Your **Final Score** is: <span id="percentage-score">0%</span></p>
+            </div>
+            <button id="restart-quiz-btn" class="btn secondary-btn">Take Another Quiz</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
